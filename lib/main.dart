@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/workout_provider.dart';
-import 'screens/workout_list_screen.dart';
+import 'screens/splash_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,12 +18,12 @@ class MyApp extends StatelessWidget {
       create: (context) => WorkoutProvider(),
       child: MaterialApp(
         title: 'Workout Tracker',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-          useMaterial3: true,
-        ),
-        home: const WorkoutListScreen(),
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
+        // Enable accessibility features
+        showSemanticsDebugger: false, // Set to true for debugging accessibility
       ),
     );
   }

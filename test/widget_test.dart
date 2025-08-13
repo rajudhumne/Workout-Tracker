@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:workout_tracker/main.dart';
 import 'package:workout_tracker/providers/workout_provider.dart';
 import 'package:workout_tracker/screens/workout_list_screen.dart';
+import 'package:workout_tracker/screens/workout_screen.dart';
+import 'package:workout_tracker/screens/splash_screen.dart';
 import 'package:workout_tracker/models/workout.dart';
 import 'package:workout_tracker/models/workout_set.dart';
 import 'package:workout_tracker/models/exercise.dart';
@@ -15,9 +17,9 @@ void main() {
       expect(find.byType(MaterialApp), findsOneWidget);
     });
 
-    testWidgets('App should show WorkoutListScreen as home', (WidgetTester tester) async {
+    testWidgets('App should show SplashScreen as home', (WidgetTester tester) async {
       await tester.pumpWidget(const MyApp());
-      expect(find.byType(WorkoutListScreen), findsOneWidget);
+      expect(find.byType(SplashScreen), findsOneWidget);
     });
   });
 
@@ -52,6 +54,9 @@ void main() {
         ],
       );
 
+      // Add workout to provider first
+      provider.updateWorkout(workout);
+
       await tester.pumpWidget(
         MaterialApp(
           home: ChangeNotifierProvider.value(
@@ -61,12 +66,10 @@ void main() {
         ),
       );
 
-      // Add workout to provider
-      provider.updateWorkout(workout);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text('Workout 1 sets'), findsOneWidget);
-      expect(find.text('1 sets'), findsOneWidget);
+      expect(find.text('Workout 1 set'), findsOneWidget);
+      expect(find.text('1 set'), findsOneWidget);
     });
 
     testWidgets('Should show floating action button', (WidgetTester tester) async {

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/semantics.dart';
 import '../models/workout_set.dart';
 import '../models/exercise.dart';
+import '../theme/app_theme.dart';
 
 class SetForm extends StatefulWidget {
   final WorkoutSet set;
@@ -34,10 +37,20 @@ class _SetFormState extends State<SetForm> {
   void _save() {
     if (_weight <= 0 || _repetitions <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter valid weight and repetitions'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Please enter valid weight and repetitions'),
+          backgroundColor: AppTheme.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
+      );
+      
+      // Provide feedback to screen reader
+      SemanticsService.announce(
+        'Please enter valid weight and repetitions',
+        TextDirection.ltr,
       );
       return;
     }
@@ -54,109 +67,237 @@ class _SetFormState extends State<SetForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16,
-        right: 16,
-        top: 16,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                widget.isNewSet ? 'Add Set' : 'Edit Set',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+    final formTitle = widget.isNewSet ? 'Add Set' : 'Edit Set';
+    final buttonText = widget.isNewSet ? 'Add Set' : 'Save Set';
+    
+    return Semantics(
+      label: '$formTitle form',
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 24,
+          right: 24,
+          top: 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header with gradient
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryOrange.withOpacity(0.3),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    formTitle,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Semantics(
+                    label: 'Close form',
+                    button: true,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.close, semanticLabel: 'Close', color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Exercise Selection
+            Semantics(
+              label: 'Exercise selection dropdown',
+              child: DropdownButtonFormField<Exercise>(
+                value: _selectedExercise,
+                decoration: InputDecoration(
+                  labelText: 'Exercise',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  helperText: 'Select the exercise for this set',
+                  prefixIcon: Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.secondaryGradient,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.fitness_center,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                items: Exercise.values.map((exercise) {
+                  return DropdownMenuItem(
+                    value: exercise,
+                    child: Text(exercise.displayName),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedExercise = value;
+                    });
+                    
+                    // Provide feedback to screen reader
+                    SemanticsService.announce(
+                      'Selected ${value.displayName}',
+                      TextDirection.ltr,
+                    );
+                  }
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Weight Input
+            Semantics(
+              label: 'Weight input field in kilograms',
+              child: TextFormField(
+                initialValue: _weight.toString(),
+                decoration: InputDecoration(
+                  labelText: 'Weight (kg)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  suffixText: 'kg',
+                  helperText: 'Enter the weight used for this set',
+                  prefixIcon: Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppTheme.primaryGreen, AppTheme.accentCyan],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.monitor_weight,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    _weight = double.tryParse(value) ?? 0.0;
+                  });
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Repetitions Input
+            Semantics(
+              label: 'Repetitions input field',
+              child: TextFormField(
+                initialValue: _repetitions.toString(),
+                decoration: InputDecoration(
+                  labelText: 'Repetitions',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  suffixText: 'reps',
+                  helperText: 'Enter the number of repetitions performed',
+                  prefixIcon: Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppTheme.primaryPurple, AppTheme.accentPink],
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.repeat,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  setState(() {
+                    _repetitions = int.tryParse(value) ?? 0;
+                  });
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            
+            // Save Button
+            Semantics(
+              label: buttonText,
+              button: true,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: AppTheme.successGradient,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryGreen.withOpacity(0.4),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _save,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    buttonText,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Exercise Selection
-          DropdownButtonFormField<Exercise>(
-            value: _selectedExercise,
-            decoration: const InputDecoration(
-              labelText: 'Exercise',
-              border: OutlineInputBorder(),
             ),
-            items: Exercise.values.map((exercise) {
-              return DropdownMenuItem(
-                value: exercise,
-                child: Text(exercise.displayName),
-              );
-            }).toList(),
-            onChanged: (value) {
-              if (value != null) {
-                setState(() {
-                  _selectedExercise = value;
-                });
-              }
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Weight Input
-          TextFormField(
-            initialValue: _weight.toString(),
-            decoration: const InputDecoration(
-              labelText: 'Weight (kg)',
-              border: OutlineInputBorder(),
-              suffixText: 'kg',
-            ),
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              setState(() {
-                _weight = double.tryParse(value) ?? 0.0;
-              });
-            },
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Repetitions Input
-          TextFormField(
-            initialValue: _repetitions.toString(),
-            decoration: const InputDecoration(
-              labelText: 'Repetitions',
-              border: OutlineInputBorder(),
-              suffixText: 'reps',
-            ),
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              setState(() {
-                _repetitions = int.tryParse(value) ?? 0;
-              });
-            },
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Save Button
-          ElevatedButton(
-            onPressed: _save,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: Text(
-              widget.isNewSet ? 'Add Set' : 'Save Set',
-              style: const TextStyle(fontSize: 16),
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-        ],
+            
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
