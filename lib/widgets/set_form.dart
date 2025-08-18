@@ -94,11 +94,11 @@ class _SetFormState extends State<SetForm> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: AppTheme.primaryGradient,
+                color: AppTheme.primaryBlue,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryOrange.withOpacity(0.3),
+                    color: AppTheme.primaryBlue.withOpacity(0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 8),
                   ),
@@ -107,25 +107,34 @@ class _SetFormState extends State<SetForm> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    formTitle,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  Semantics(
+                    label: formTitle,
+                    header: true,
+                    child: Text(
+                      formTitle,
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   Semantics(
                     label: 'Close form',
                     button: true,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        semanticLabel: 'Close',
                       ),
-                      child: IconButton(
-                        icon: const Icon(Icons.close, semanticLabel: 'Close', color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+                      onPressed: () {
+                        // Announce to screen reader
+                        SemanticsService.announce(
+                          'Form closed',
+                          TextDirection.ltr,
+                        );
+                        Navigator.pop(context);
+                      },
                     ),
                   ),
                 ],
@@ -148,13 +157,14 @@ class _SetFormState extends State<SetForm> {
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: AppTheme.secondaryGradient,
+                      color: AppTheme.primaryBlue,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.fitness_center,
                       color: Colors.white,
                       size: 20,
+                      semanticLabel: 'Exercise icon',
                     ),
                   ),
                 ),
@@ -197,15 +207,14 @@ class _SetFormState extends State<SetForm> {
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.primaryGreen, AppTheme.accentCyan],
-                      ),
+                      color: AppTheme.primaryGreen,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.monitor_weight,
                       color: Colors.white,
                       size: 20,
+                      semanticLabel: 'Weight icon',
                     ),
                   ),
                 ),
@@ -235,15 +244,14 @@ class _SetFormState extends State<SetForm> {
                   prefixIcon: Container(
                     margin: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppTheme.primaryPurple, AppTheme.accentPink],
-                      ),
+                      color: AppTheme.primaryOrange,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.repeat,
                       color: Colors.white,
                       size: 20,
+                      semanticLabel: 'Repetitions icon',
                     ),
                   ),
                 ),
@@ -262,15 +270,16 @@ class _SetFormState extends State<SetForm> {
             Semantics(
               label: buttonText,
               button: true,
+              enabled: true,
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: AppTheme.successGradient,
+                  color: AppTheme.primaryGreen,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryGreen.withOpacity(0.4),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
+                      color: AppTheme.primaryGreen.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),

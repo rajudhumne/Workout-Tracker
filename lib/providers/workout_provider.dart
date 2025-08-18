@@ -52,19 +52,21 @@ class WorkoutProvider with ChangeNotifier {
       sets: [],
     );
     
-    _workouts.add(workout);
-    _saveWorkouts();
-    notifyListeners();
+    // Don't automatically add to list or save - only save when user explicitly saves
     return workout;
   }
 
   void updateWorkout(Workout workout) {
     final index = _workouts.indexWhere((w) => w.id == workout.id);
     if (index != -1) {
+      // Update existing workout
       _workouts[index] = workout;
-      _saveWorkouts();
-      notifyListeners();
+    } else {
+      // Add new workout
+      _workouts.add(workout);
     }
+    _saveWorkouts();
+    notifyListeners();
   }
 
   void deleteWorkout(String workoutId) {

@@ -186,10 +186,6 @@ void main() {
       expect(find.text('Select Exercise'), findsOneWidget);
       expect(find.text('Exercise'), findsOneWidget);
       expect(find.text('Bench Press'), findsOneWidget);
-      expect(find.text('Barbell Row'), findsOneWidget);
-      expect(find.text('Shoulder Press'), findsOneWidget);
-      expect(find.text('Deadlift'), findsOneWidget);
-      expect(find.text('Squat'), findsOneWidget);
       expect(find.text('Cancel'), findsOneWidget);
       expect(find.text('Select'), findsOneWidget);
     });

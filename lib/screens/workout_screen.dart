@@ -30,6 +30,92 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     _workout = widget.workout;
   }
 
+  // Check if workout can be saved (has at least one set)
+  bool _canSaveWorkout() {
+    return _workout.sets.isNotEmpty;
+  }
+
+  // Show confirmation dialog when user tries to go back with unsaved changes
+  Future<bool> _onWillPop() async {
+    if (_workout.sets.isNotEmpty) {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Text(
+            'Unsaved Changes',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: AppTheme.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Text(
+            'You have unsaved workout sets. What would you like to do?',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true), // Discard changes and allow navigation
+              child: Text(
+                'Discard',
+                style: TextStyle(
+                  color: AppTheme.primaryRed,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.primaryGreen,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  if (_canSaveWorkout()) {
+                    _saveWorkout();
+                    Navigator.of(context).pop(true); // Save and leave
+                  } else {
+                    // Show error message and don't close dialog
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Cannot save workout: No sets added',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: AppTheme.primaryRed,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Save & Leave',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+      return result ?? false;
+    }
+    return true; // No unsaved changes, allow navigation
+  }
+
   void _addSet() {
     Exercise? selectedExercise = Exercise.benchPress;
     
@@ -141,7 +227,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           setState(() {
             _workout.addSet(updatedSet);
           });
-          _saveWorkout();
           
           // Provide feedback to screen reader
           SemanticsService.announce(
@@ -164,7 +249,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           setState(() {
             _workout.updateSet(updatedSet);
           });
-          _saveWorkout();
           
           // Provide feedback to screen reader
           SemanticsService.announce(
@@ -180,7 +264,6 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     setState(() {
       _workout.removeSet(setId);
     });
-    _saveWorkout();
     
     // Provide feedback to screen reader
     SemanticsService.announce(
@@ -190,175 +273,224 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _saveWorkout() {
+    // Validate that workout has sets before saving
+    if (!_canSaveWorkout()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Cannot save workout: No sets added',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppTheme.primaryRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     final workoutProvider = Provider.of<WorkoutProvider>(
       context,
       listen: false,
     );
     workoutProvider.updateWorkout(_workout);
     
+    // Show success feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Workout saved successfully!',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: AppTheme.primaryGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+    );
+    
     // Provide feedback to screen reader
     SemanticsService.announce(
-      'Workout saved',
+      'Workout saved successfully',
       TextDirection.ltr,
     );
+    
+    // Navigate back to root screen after successful save
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final workoutDate = '${_workout.date.day}/${_workout.date.month}/${_workout.date.year}';
     
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Workout - $workoutDate'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 0,
-        actions: [
-          Semantics(
-            label: 'Save workout',
-            button: true,
-            child: Container(
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                gradient: AppTheme.successGradient,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: IconButton(
-                icon: const Icon(Icons.save, semanticLabel: 'Save', color: Colors.white),
-                onPressed: _saveWorkout,
-              ),
-            ),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Semantics(
+            label: 'Workout details for $workoutDate',
+            header: true,
+            child: Text('Workout - $workoutDate'),
           ),
-        ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.background,
-              Theme.of(context).colorScheme.background.withOpacity(0.8),
-            ],
-          ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: _workout.sets.isEmpty
-                  ? Semantics(
-                      label: 'No sets added yet. Tap the add set button to add your first set.',
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                gradient: AppTheme.secondaryGradient,
-                                borderRadius: BorderRadius.circular(60),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryBlue.withOpacity(0.3),
-                                    blurRadius: 20,
-                                    offset: const Offset(0, 10),
-                                  ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.fitness_center,
-                                size: 60,
-                                color: Colors.white,
-                                semanticLabel: 'Fitness center icon',
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'No sets added yet',
-                              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: AppTheme.textPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primaryOrange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: AppTheme.primaryOrange.withOpacity(0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                'Tap the + button to add your first set',
-                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: AppTheme.primaryOrange,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : Semantics(
-                      label: 'Workout sets list with ${_workout.sets.length} sets',
-                      child: ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _workout.sets.length,
-                        itemBuilder: (context, index) {
-                          final set = _workout.sets[index];
-                          return SetCard(
-                            set: set,
-                            setNumber: index + 1,
-                            onEdit: () => _editSet(set),
-                            onDelete: () => _deleteSet(set.id),
-                          );
-                        },
-                      ),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Semantics(
-                label: 'Add new set to workout',
-                button: true,
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryOrange.withOpacity(0.4),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          elevation: 0,
+          actions: [
+            Semantics(
+              label: _canSaveWorkout() ? 'Save workout' : 'Save workout (disabled - no sets added)',
+              button: true,
+              enabled: _canSaveWorkout(),
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: _canSaveWorkout() ? AppTheme.primaryGreen : Colors.grey.shade400,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.save, 
+                    semanticLabel: 'Save', 
+                    color: _canSaveWorkout() ? Colors.white : Colors.grey.shade600,
                   ),
-                  child: ElevatedButton.icon(
-                    onPressed: _addSet,
-                    icon: const Icon(Icons.add, semanticLabel: 'Add', color: Colors.white),
-                    label: Text(
-                      'Add Set',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                  ),
+                  onPressed: _canSaveWorkout() ? _saveWorkout : null,
                 ),
               ),
             ),
           ],
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Theme.of(context).colorScheme.background,
+                Theme.of(context).colorScheme.background.withOpacity(0.8),
+              ],
+            ),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: _workout.sets.isEmpty
+                    ? Semantics(
+                        label: 'No sets added yet. Tap the add set button to add your first set.',
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryBlue,
+                                  borderRadius: BorderRadius.circular(50),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppTheme.primaryBlue.withOpacity(0.3),
+                                      blurRadius: 15,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.fitness_center,
+                                  size: 50,
+                                  color: Colors.white,
+                                  semanticLabel: 'Fitness center icon',
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              Text(
+                                'No sets added yet',
+                                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryBlue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: AppTheme.primaryBlue.withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Tap the + button to add your first set',
+                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: AppTheme.primaryBlue,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : Semantics(
+                        label: 'Workout sets list with ${_workout.sets.length} sets',
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _workout.sets.length,
+                          itemBuilder: (context, index) {
+                            final set = _workout.sets[index];
+                            return SetCard(
+                              set: set,
+                              setNumber: index + 1,
+                              onEdit: () => _editSet(set),
+                              onDelete: () => _deleteSet(set.id),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Semantics(
+                  label: 'Add new set to workout',
+                  button: true,
+                  enabled: true,
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryBlue.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: _addSet,
+                      icon: const Icon(Icons.add, semanticLabel: 'Add', color: Colors.white),
+                      label: Text(
+                        'Add Set',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

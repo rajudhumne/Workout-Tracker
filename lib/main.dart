@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/semantics.dart';
 import 'package:provider/provider.dart';
 import 'providers/workout_provider.dart';
 import 'screens/splash_screen.dart';
@@ -22,8 +23,18 @@ class MyApp extends StatelessWidget {
         darkTheme: AppTheme.darkTheme,
         home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
-        // Enable accessibility features
+        // Enhanced accessibility features
         showSemanticsDebugger: false, // Set to true for debugging accessibility
+        // Enable screen reader support
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              // Support for larger text sizes
+              textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(0.8, 3.0),
+            ),
+            child: child!,
+          );
+        },
       ),
     );
   }
